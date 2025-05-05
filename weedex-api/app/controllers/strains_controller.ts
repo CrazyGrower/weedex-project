@@ -16,7 +16,7 @@ interface StrainData {
   type: string
   thc_percentage: number
   average_yield: number
-  number?: string
+  strain_review: number
   image_path?: string
   thumbnail_path?: string
 }
@@ -27,12 +27,6 @@ export default class StrainsController {
    */
   async index({ response }: HttpContext) {
     const strains = await Strain.all()
-    // Trie côté backend par numéro numérique croissant
-    strains.sort((a, b) => {
-      const na = parseInt(String(a.number).replace(/[^0-9]/g, ''), 10) || 0;
-      const nb = parseInt(String(b.number).replace(/[^0-9]/g, ''), 10) || 0;
-      return na - nb;
-    });
     return response.json({ strains })
   }
 
@@ -65,18 +59,26 @@ export default class StrainsController {
         'name',
         'brand',
         'description',
-        'seed_to_harvest',
+        'seedToHarvest',
         'type',
-        'thc_percentage',
-        'average_yield',
-      ]) as StrainData;
+        'thcPercentage',
+        'averageYield',
+        'strainReview'
+      ]) as any;
 
-      // Convertir les chaînes en nombres
-      data.seed_to_harvest = Number(data.seed_to_harvest);
-      data.thc_percentage = Number(data.thc_percentage);
-      data.average_yield = Number(data.average_yield);
+      // Convertir les chaînes en nombres et renommer les champs
+      const processedData: StrainData = {
+        name: data.name,
+        brand: data.brand,
+        description: data.description,
+        type: data.type,
+        seed_to_harvest: Number(data.seedToHarvest),
+        thc_percentage: Number(data.thcPercentage),
+        average_yield: Number(data.averageYield),
+        strain_review: Number(data.strainReview)
+      };
 
-      console.log('Données traitées:', data);
+      console.log('Données traitées:', processedData);
 
       // Gérer l'upload de l'image
       const image = request.file('image')
@@ -105,38 +107,15 @@ export default class StrainsController {
       // Générer un nom unique pour l'image
       const fileName = `${cuid()}.${image.extname}`
       const imagePath = join(strainsPath, fileName)
-      const thumbnailFileName = `thumb_${fileName}`
-      const thumbnailPath = join(strainsPath, thumbnailFileName)
 
       // Sauvegarder l'image
       await image.move(strainsPath, { name: fileName })
       
-      // Générer la miniature avec Sharp
-      try {
-        await sharp(imagePath)
-          .resize(100, 100, { fit: 'cover' })  // Taille de la miniature (100x100px)
-          .toFile(thumbnailPath)
-        
-        console.log('Miniature générée avec succès:', thumbnailPath)
-      } catch (thumbError) {
-        console.error('Erreur lors de la génération de la miniature:', thumbError)
-        // Continuer même en cas d'erreur de génération de la miniature
-      }
+      // Ajouter le chemin de l'image
+      processedData.image_path = `/uploads/strains/${fileName}`
 
-      // Trouver le plus grand numéro existant
-      const maxNumberStrain = await Strain.query()
-        .orderBy('id', 'desc')
-        .first()
-      
-      const nextId = maxNumberStrain ? maxNumberStrain.id + 1 : 1
-      data.number = `#${String(nextId).padStart(3, '0')}` // Format : #001, #002, etc.
-      
-      // Ajouter les chemins des images
-      data.image_path = `/uploads/strains/${fileName}`
-      data.thumbnail_path = `/uploads/strains/thumb_${fileName}`
-
-      console.log('Données finales avant création:', data);
-      const strain = await Strain.create(data)
+      console.log('Données finales avant création:', processedData);
+      const strain = await Strain.create(processedData)
       return response.status(201).json({ strain })
     } catch (error) {
       console.error('Erreur détaillée lors de la création:', error)
@@ -155,15 +134,26 @@ export default class StrainsController {
       const strain = await Strain.findOrFail(params.id)
       
       const data = request.only([
-        'number',
         'name',
         'brand',
         'description',
-        'seed_to_harvest',
+        'seedToHarvest',
         'type',
-        'thc_percentage',
-        'average_yield',
-      ]) as StrainData
+        'thcPercentage',
+        'averageYield',
+        'strainReview'
+      ]) as any;
+
+      const processedData: StrainData = {
+        name: data.name,
+        brand: data.brand,
+        description: data.description,
+        type: data.type,
+        seed_to_harvest: Number(data.seedToHarvest),
+        thc_percentage: Number(data.thcPercentage),
+        average_yield: Number(data.averageYield),
+        strain_review: Number(data.strainReview)
+      };
 
       // Gérer l'upload de la nouvelle image si fournie
       const image = request.file('image')
@@ -188,11 +178,10 @@ export default class StrainsController {
           }
         }
 
-        data.image_path = `/uploads/strains/${fileName}`
-        data.thumbnail_path = `/uploads/strains/thumb_${fileName}`
+        processedData.image_path = `/uploads/strains/${fileName}`
       }
 
-      strain.merge(data)
+      strain.merge(processedData)
       await strain.save()
 
       return response.json({ strain })

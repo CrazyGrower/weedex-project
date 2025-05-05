@@ -1,13 +1,13 @@
 <template>
   <div class="strain-list">
-    <div>
+    <div class="strains-container">
       <div class="strain-item" 
            v-for="strain in strains" 
            :key="strain.id"
            :class="{ active: selectedId === strain.id }"
            @click="$emit('selectStrain', strain.id)">
         <div class="retro-arrow" v-if="selectedId === strain.id"></div>
-        <div class="strain-number">{{ strain.number }}</div>
+        <div class="strain-number">#{{ String(strain.id).padStart(3, '0') }}</div>
         <div class="strain-item-img">
           <img :src="getImageUrl(strain)" :alt="`${strain.name} Thumbnail`">
         </div>
@@ -17,14 +17,34 @@
     </div>
     <div class="buttons-container">
       <button class="button" @click="$emit('addStrain')">Ajouter une variété</button>
-      <button class="button" @click="$emit('sortStrains')">Trier les variétés</button>
+      <div class="sort-container">
+        <button class="button" @click="toggleSortMenu">Trier les variétés</button>
+        <div v-if="showSortMenu" class="sort-menu">
+          <div class="sort-section">
+            <div class="sort-title">Par ID</div>
+            <button @click="sortById('asc')">Du plus petit au plus grand</button>
+            <button @click="sortById('desc')">Du plus grand au plus petit</button>
+          </div>
+          <div class="sort-section">
+            <div class="sort-title">Par note</div>
+            <button @click="sortByRating('desc')">De la meilleure à la moins bonne</button>
+            <button @click="sortByRating('asc')">De la moins bonne à la meilleure</button>
+          </div>
+          <div class="sort-section">
+            <div class="sort-title">Par type</div>
+            <button @click="sortByType('sativa')">Sativa</button>
+            <button @click="sortByType('indica')">Indica</button>
+            <button @click="sortByType('hybrid')">Hybrid</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, onMounted } from 'vue';
-import type { Strain } from '@/stores/strain';
+import { defineProps, defineEmits, onMounted, ref } from 'vue';
+import type { Strain } from '@/types';
 
 const API_BASE = 'https://api.weedex-project.orb.local';
 
@@ -35,11 +55,32 @@ const props = defineProps<{
 
 const emit = defineEmits(['selectStrain', 'addStrain', 'sortStrains']);
 
+const showSortMenu = ref(false);
+
+function toggleSortMenu() {
+  showSortMenu.value = !showSortMenu.value;
+}
+
+function sortById(direction: 'asc' | 'desc') {
+  emit('sortStrains', { type: 'id', direction });
+  showSortMenu.value = false;
+}
+
+function sortByRating(direction: 'asc' | 'desc') {
+  emit('sortStrains', { type: 'rating', direction });
+  showSortMenu.value = false;
+}
+
+function sortByType(type: 'sativa' | 'indica' | 'hybrid') {
+  emit('sortStrains', { type: 'strainType', value: type });
+  showSortMenu.value = false;
+}
+
 onMounted(() => {
   console.log('StrainList mounted with strains:', props.strains);
   // Debug image paths
   props.strains.forEach(strain => {
-    console.log(`Strain ${strain.name} image path:`, strain.image_path);
+    console.log(`Strain ${strain.name} image path:`, strain.imagePath);
     console.log(`Constructed image URL:`, getImageUrl(strain));
   });
 });
@@ -56,7 +97,7 @@ function getFilenameFromPath(path: string | undefined | null): string {
 }
 
 function getImageUrl(strain: Strain): string {
-  const path = (strain as any).imagePath || strain.image_path;
+  const path = strain.imagePath;
   if (path) {
     const filename = getFilenameFromPath(path);
     return `${API_BASE}/api/uploads/strains-${filename}`;
@@ -75,12 +116,37 @@ function getImageUrl(strain: Strain): string {
   color: #333;
   font-weight: bold;
   position: relative;
-  max-height: 535px;
+  height: 632px;
   padding: 10px;
   margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.strains-container {
+  flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
-  flex-grow: 1;
+  margin-bottom: 10px;
+  padding-right: 5px;
+}
+
+.strains-container::-webkit-scrollbar {
+  width: 12px;
+}
+
+.strains-container::-webkit-scrollbar-track {
+  background: #81c784;
+  border-radius: 4px;
+}
+
+.strains-container::-webkit-scrollbar-thumb {
+  background: #388e3c;
+  border-radius: 4px;
+  border: 2px solid #333;
+}
+
+.strains-container::-webkit-scrollbar-thumb:hover {
+  background: #2e7d32;
 }
 
 .strain-item {
@@ -142,13 +208,6 @@ function getImageUrl(strain: Strain): string {
   object-fit: cover;
 }
 
-.strain-number {
-  font-size: 12px;
-  color: #333;
-  font-weight: bold;
-  margin-right: 10px;
-}
-
 .strain-type {
   font-size: 12px;
   color: #666;
@@ -161,6 +220,9 @@ function getImageUrl(strain: Strain): string {
 .buttons-container {
   display: flex;
   gap: 15px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 2px solid #333;
 }
 
 .button {
@@ -184,6 +246,75 @@ function getImageUrl(strain: Strain): string {
 
 .button:hover {
   background-color: #c5e1a5;
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+}
+
+.strain-number {
+  font-size: 12px;
+  color: #333;
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.sort-container {
+  position: relative;
+  flex-grow: 1;
+}
+
+.sort-menu {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 10px;
+  background-color: #dcedc8;
+  border: 3px solid #333;
+  border-radius: 4px;
+  padding: 10px;
+  min-width: 250px;
+  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.sort-section {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #333;
+}
+
+.sort-section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.sort-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #333;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.sort-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  margin: 5px 0;
+  background-color: #c8e6c9;
+  border: 2px solid #333;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.sort-menu button:hover {
+  background-color: #a5d6a7;
   transform: translate(1px, 1px);
   box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
 }

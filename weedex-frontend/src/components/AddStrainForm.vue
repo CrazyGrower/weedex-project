@@ -42,16 +42,16 @@
     
     <div class="form-row">
       <div class="form-group half">
-        <label for="seed_to_harvest">Durée de culture *</label>
+        <label for="seedToHarvest">Durée de culture *</label>
         <input 
           type="number" 
-          id="seed_to_harvest" 
-          v-model="form.seed_to_harvest" 
-          :class="{ 'error': errors.seed_to_harvest }"
+          id="seedToHarvest" 
+          v-model="form.seedToHarvest" 
+          :class="{ 'error': errors.seedToHarvest }"
           min="1"
           required
         >
-        <span v-if="errors.seed_to_harvest" class="error-message">{{ errors.seed_to_harvest }}</span>
+        <span v-if="errors.seedToHarvest" class="error-message">{{ errors.seedToHarvest }}</span>
       </div>
       
       <div class="form-group half">
@@ -68,33 +68,57 @@
     
     <div class="form-row">
       <div class="form-group half">
-        <label for="thc_percentage">Taux de THC (%) *</label>
+        <label for="thcPercentage">Taux de THC (%) *</label>
         <input 
           type="number" 
-          id="thc_percentage" 
-          v-model="form.thc_percentage" 
-          :class="{ 'error': errors.thc_percentage }"
+          id="thcPercentage" 
+          v-model="form.thcPercentage" 
+          :class="{ 'error': errors.thcPercentage }"
           step="0.1"
           min="0"
           max="35"
           required
         >
-        <span v-if="errors.thc_percentage" class="error-message">{{ errors.thc_percentage }}</span>
+        <span v-if="errors.thcPercentage" class="error-message">{{ errors.thcPercentage }}</span>
       </div>
       
       <div class="form-group half">
-        <label for="average_yield">Rendement moyen (g) *</label>
+        <label for="averageYield">Rendement moyen (g) *</label>
         <input 
           type="number" 
-          id="average_yield" 
-          v-model="form.average_yield" 
-          :class="{ 'error': errors.average_yield }"
+          id="averageYield" 
+          v-model="form.averageYield" 
+          :class="{ 'error': errors.averageYield }"
           step="0.1"
           min="0"
           required
         >
-        <span v-if="errors.average_yield" class="error-message">{{ errors.average_yield }}</span>
+        <span v-if="errors.averageYield" class="error-message">{{ errors.averageYield }}</span>
       </div>
+    </div>
+
+    <div class="form-group">
+      <label for="strainReview">Note de la variété (sur 5) *</label>
+      <div class="rating-input">
+        <input 
+          type="number" 
+          id="strainReview" 
+          v-model="form.strainReview" 
+          :class="{ 'error': errors.strainReview }"
+          min="1"
+          max="5"
+          step="1"
+          required
+        >
+        <div class="rating-stars">
+          <span v-for="star in 5" :key="star" 
+                @click="form.strainReview = star"
+                :class="{ 'active': star <= (form.strainReview || 0) }">
+            ★
+          </span>
+        </div>
+      </div>
+      <span v-if="errors.strainReview" class="error-message">{{ errors.strainReview }}</span>
     </div>
 
     <div class="form-group">
@@ -136,10 +160,11 @@ const form = reactive({
   name: '',
   brand: '',
   description: '',
-  seed_to_harvest: null as number | null,
+  seedToHarvest: null as number | null,
   type: '',
-  thc_percentage: null as number | null,
-  average_yield: null as number | null,
+  thcPercentage: null as number | null,
+  averageYield: null as number | null,
+  strainReview: null as number | null,
   image: null as File | null,
 });
 
@@ -147,10 +172,11 @@ const errors = reactive({
   name: '',
   brand: '',
   description: '',
-  seed_to_harvest: '',
+  seedToHarvest: '',
   type: '',
-  thc_percentage: '',
-  average_yield: '',
+  thcPercentage: '',
+  averageYield: '',
+  strainReview: '',
   image: '',
 });
 
@@ -184,10 +210,11 @@ function validateForm() {
     name: 'Le nom est requis',
     brand: 'La marque est requise',
     description: 'La description est requise',
-    seed_to_harvest: 'La durée de culture est requise',
+    seedToHarvest: 'La durée de culture est requise',
     type: 'Le type est requis',
-    thc_percentage: 'Le pourcentage de THC est requis',
-    average_yield: 'Le rendement moyen est requis',
+    thcPercentage: 'Le pourcentage de THC est requis',
+    averageYield: 'Le rendement moyen est requis',
+    strainReview: 'La note de la variété est requise',
     image: 'Une photo est requise',
   };
 
@@ -214,10 +241,11 @@ async function validateAndSubmit() {
     formData.append('name', form.name);
     formData.append('brand', form.brand);
     formData.append('description', form.description);
-    formData.append('seed_to_harvest', form.seed_to_harvest?.toString() || '');
+    formData.append('seedToHarvest', form.seedToHarvest?.toString() || '');
     formData.append('type', form.type);
-    formData.append('thc_percentage', form.thc_percentage?.toString() || '');
-    formData.append('average_yield', form.average_yield?.toString() || '');
+    formData.append('thcPercentage', form.thcPercentage?.toString() || '');
+    formData.append('averageYield', form.averageYield?.toString() || '');
+    formData.append('strainReview', form.strainReview?.toString() || '');
     
     // Ajouter l'image si elle existe
     if (form.image) {
@@ -431,5 +459,31 @@ input, select, textarea {
   border-top-right-radius: 4px;
   letter-spacing: 1px;
   text-shadow: 1px 1px 0px rgba(255,255,255,0.3);
+}
+
+.rating-input {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.rating-stars {
+  display: flex;
+  gap: 5px;
+}
+
+.rating-stars span {
+  font-size: 24px;
+  color: #ddd;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.rating-stars span.active {
+  color: #ffd700;
+}
+
+.rating-stars span:hover {
+  color: #ffd700;
 }
 </style>

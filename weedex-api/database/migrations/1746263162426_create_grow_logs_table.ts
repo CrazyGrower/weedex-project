@@ -14,6 +14,7 @@ export default class extends BaseSchema {
       table.integer('review_rating').unsigned().nullable()
       table.text('notes').nullable()
       table.string('pdf_path').nullable()
+      table.string('growlog_url').nullable()
 
       table.timestamp('created_at', { useTz: true })
       table.timestamp('updated_at', { useTz: true })

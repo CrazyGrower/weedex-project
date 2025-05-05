@@ -8,58 +8,60 @@
       </div>
     </div>
     <div class="strain-description">
-      {{ strain.description || (strain as any).description || 'Aucune description disponible.' }}
+      {{ strain.description || 'Aucune description disponible.' }}
     </div>
     <div class="info-box">
       <ul>
-        <li>Durée de culture : {{ formatNumber((strain as any).seedToHarvest ?? strain.seed_to_harvest) }} semaines</li>
-        <li>Type : {{ strain.type || (strain as any).type || 'N/A' }}</li>
-        <li>Taux de THC : {{ formatNumber((strain as any).thcPercentage ?? strain.thc_percentage) }} %</li>
-        <li>Rendement : {{ formatNumber((strain as any).averageYield ?? strain.average_yield) }}g</li>
+        <li>Durée de culture : {{ formatWeeks(strain.seedToHarvest) }}</li>
+        <li>Type : {{ strain.type || 'N/A' }}</li>
+        <li>Taux de THC : {{ formatPercentage(strain.thcPercentage) }}</li>
+        <li>Rendement : {{ formatGrams(strain.averageYield) }}</li>
+        <li class="rating-item">
+          Note : 
+          <div class="rating-stars">
+            <span v-for="n in 5" :key="n" :class="{ filled: n <= getRatingStars((strain as any).strain_review || strain.strainReview) }">★</span>
+          </div>
+        </li>
       </ul>
     </div>
     <div class="info-table">
-      <table>
-        <thead>
-          <tr>
-            <th>Nom / PDF</th>
-            <th>Début</th>
-            <th>Fin</th>
-            <th>Récolte (g)</th>
-            <th>Note</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="log in growLogs" :key="log.id">
-            <td>
-              <template v-if="log.pdf_path || log.pdfPath">
-                <a :href="getPdfUrl(log)" 
-                   target="_blank" 
-                   download 
-                   class="pdf-link"
-                   @click="handlePdfClick(log)">
-                  {{ log.name }}
-                </a>
-              </template>
-              <template v-else>
-                <span class="no-pdf">{{ log.name }}</span>
-                <span class="pdf-missing">(PDF non disponible)</span>
-              </template>
-            </td>
-            <td>{{ formatDate((log as any).startDate ?? log.start_date) }}</td>
-            <td>{{ formatDate((log as any).endDate ?? log.end_date) }}</td>
-            <td>{{ formatNumber((log as any).harvestAmount ?? log.harvest_amount) }}g</td>
-            <td>{{ formatNumber((log as any).reviewRating ?? log.review_rating) }}/5</td>
-          </tr>
-          <tr v-if="!growLogs.length">
-            <td colspan="5" class="text-center">Aucun log de culture pour cette variété</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Nom / PDF</th>
+              <th>Début</th>
+              <th>Fin</th>
+              <th>Récolte (g)</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="log in growLogs" :key="log.id">
+              <td>
+                <span class="growlog-name" @click="openGrowLogDetails(log)">{{ log.name }}</span>
+              </td>
+              <td>{{ formatDate(log.startDate) }}</td>
+              <td>{{ formatDate(log.endDate) }}</td>
+              <td>{{ formatGrams(log.harvestAmount) }}</td>
+              <td>
+                <div class="rating-stars">
+                  <span v-for="n in 5" :key="n" :class="{ filled: n <= getRatingStars(log.reviewRating) }">★</span>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="!growLogs.length">
+              <td colspan="5" class="text-center">Aucun log de culture pour cette variété</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <div class="add-growlog-btn-container">
         <button class="button add-growlog" @click="showAddGrowLog = true">Ajouter un Grow Log</button>
       </div>
     </div>
+
+    <!-- Modal d'ajout de Grow Log -->
     <div v-if="showAddGrowLog" class="modal-backdrop">
       <div class="modal-content">
         <h2>Ajouter un Grow Log</h2>
@@ -80,25 +82,37 @@
           <div class="form-row">
             <div class="form-group half">
               <label for="growlog-start">Date de début *</label>
-              <input id="growlog-start" type="date" v-model="growLogForm.start_date" :class="{ error: errors.start_date }" required />
-              <span v-if="errors.start_date" class="error-message">{{ errors.start_date }}</span>
+              <input id="growlog-start" type="date" v-model="growLogForm.startDate" :class="{ error: errors.startDate }" required />
+              <span v-if="errors.startDate" class="error-message">{{ errors.startDate }}</span>
             </div>
             <div class="form-group half">
               <label for="growlog-end">Date de fin *</label>
-              <input id="growlog-end" type="date" v-model="growLogForm.end_date" :class="{ error: errors.end_date }" required />
-              <span v-if="errors.end_date" class="error-message">{{ errors.end_date }}</span>
+              <input id="growlog-end" type="date" v-model="growLogForm.endDate" :class="{ error: errors.endDate }" required />
+              <span v-if="errors.endDate" class="error-message">{{ errors.endDate }}</span>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group half">
               <label for="growlog-harvest">Récolte (g) *</label>
-              <input id="growlog-harvest" type="number" v-model="growLogForm.harvest_amount" :class="{ error: errors.harvest_amount }" min="0" step="0.01" required placeholder="Quantité récoltée" />
-              <span v-if="errors.harvest_amount" class="error-message">{{ errors.harvest_amount }}</span>
+              <input id="growlog-harvest" type="number" v-model="growLogForm.harvestAmount" :class="{ error: errors.harvestAmount }" min="0" step="0.01" required placeholder="Quantité récoltée" />
+              <span v-if="errors.harvestAmount" class="error-message">{{ errors.harvestAmount }}</span>
             </div>
             <div class="form-group half">
               <label for="growlog-review" class="label-tooltip" data-tooltip="Note de la session (de 1 à 5)">Note *</label>
-              <input id="growlog-review" type="number" v-model="growLogForm.review_rating" :class="{ error: errors.review_rating }" min="1" max="5" required placeholder="Note sur 5" />
-              <span v-if="errors.review_rating" class="error-message">{{ errors.review_rating }}</span>
+              <input id="growlog-review" type="number" v-model="growLogForm.reviewRating" :class="{ error: errors.reviewRating }" min="1" max="5" required placeholder="Note sur 5" />
+              <span v-if="errors.reviewRating" class="error-message">{{ errors.reviewRating }}</span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="growlog-url">URL du Grow Log</label>
+              <input id="growlog-url" type="url" v-model="growLogForm.growlogUrl" placeholder="https://..." />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="growlog-notes">Notes descriptives</label>
+              <textarea id="growlog-notes" v-model="growLogForm.notes" rows="4" placeholder="Ajoutez des notes détaillées sur votre culture..."></textarea>
             </div>
           </div>
           <div class="form-row buttons">
@@ -109,6 +123,40 @@
         <div v-if="growLogSuccess" class="success-message">Grow log ajouté !</div>
       </div>
     </div>
+
+    <!-- Modal de détails du Grow Log -->
+    <div v-if="showGrowLogDetails && selectedGrowLog" class="modal-backdrop" @click="closeGrowLogDetails">
+      <div class="modal-content" @click.stop>
+        <h2>Détails du Grow Log</h2>
+        <div class="growlog-details">
+          <div class="detail-row">
+            <h3>{{ selectedGrowLog.name }}</h3>
+            <div class="rating-display">
+              <div class="rating-stars">
+                <span v-for="n in 5" :key="n" :class="{ filled: n <= getRatingStars(selectedGrowLog.reviewRating) }">★</span>
+              </div>
+            </div>
+          </div>
+          <div class="detail-info">
+            <p><strong>Date de début:</strong> {{ formatDate(selectedGrowLog.startDate) }}</p>
+            <p><strong>Date de fin:</strong> {{ formatDate(selectedGrowLog.endDate) }}</p>
+            <p><strong>Récolte:</strong> {{ formatGrams(selectedGrowLog.harvestAmount) }}</p>
+            <p v-if="selectedGrowLog.notes"><strong>Notes:</strong> {{ selectedGrowLog.notes }}</p>
+          </div>
+          <div class="detail-actions">
+            <button v-if="selectedGrowLog.pdfPath" class="button" @click="downloadPdf(selectedGrowLog)">
+              Télécharger PDF
+            </button>
+            <button v-if="selectedGrowLog.growlogUrl" class="button" @click="openGrowLogUrl(selectedGrowLog)">
+              Voir le Grow Log
+            </button>
+            <button class="button cancel" @click="closeGrowLogDetails">
+              Fermer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   <div v-else class="right-container flex items-center justify-center">
     <p class="text-xl font-bold">Sélectionnez une variété pour voir les détails</p>
@@ -117,7 +165,7 @@
 
 <script setup lang="ts">
 import { defineProps, defineEmits, onMounted, ref } from 'vue';
-import type { Strain, GrowLog } from '@/stores/strain';
+import type { Strain, GrowLog } from '@/types';
 import api from '@/services/api';
 
 const API_BASE = 'https://api.weedex-project.orb.local';
@@ -131,23 +179,28 @@ defineEmits(['viewGrowLog']);
 
 const showAddGrowLog = ref(false);
 const growLogSuccess = ref(false);
+const showGrowLogDetails = ref(false);
+const selectedGrowLog = ref<GrowLog | null>(null);
+
 const growLogForm = ref({
   name: '',
   pdf: null as File | null,
   pdfName: '',
-  start_date: '',
-  end_date: '',
-  harvest_amount: '',
-  review_rating: '',
+  startDate: '',
+  endDate: '',
+  harvestAmount: '',
+  reviewRating: '',
+  growlogUrl: '',
+  notes: '',
 });
 
 const errors = ref({
   name: '',
   pdf: '',
-  start_date: '',
-  end_date: '',
-  harvest_amount: '',
-  review_rating: '',
+  startDate: '',
+  endDate: '',
+  harvestAmount: '',
+  reviewRating: '',
 });
 
 function handlePdfUpload(event: Event) {
@@ -170,10 +223,12 @@ function closeGrowLogModal() {
     name: '',
     pdf: null,
     pdfName: '',
-    start_date: '',
-    end_date: '',
-    harvest_amount: '',
-    review_rating: '',
+    startDate: '',
+    endDate: '',
+    harvestAmount: '',
+    reviewRating: '',
+    growlogUrl: '',
+    notes: '',
   };
 }
 
@@ -192,7 +247,7 @@ async function fetchGrowLogs() {
 
 function validateGrowLogForm() {
   let valid = true;
-  errors.value = { name: '', pdf: '', start_date: '', end_date: '', harvest_amount: '', review_rating: '' };
+  errors.value = { name: '', pdf: '', startDate: '', endDate: '', harvestAmount: '', reviewRating: '' };
   if (!growLogForm.value.name) {
     errors.value.name = 'Le nom est requis';
     valid = false;
@@ -201,20 +256,20 @@ function validateGrowLogForm() {
     errors.value.pdf = 'Le PDF est requis';
     valid = false;
   }
-  if (!growLogForm.value.start_date) {
-    errors.value.start_date = 'La date de début est requise';
+  if (!growLogForm.value.startDate) {
+    errors.value.startDate = 'La date de début est requise';
     valid = false;
   }
-  if (!growLogForm.value.end_date) {
-    errors.value.end_date = 'La date de fin est requise';
+  if (!growLogForm.value.endDate) {
+    errors.value.endDate = 'La date de fin est requise';
     valid = false;
   }
-  if (!growLogForm.value.harvest_amount) {
-    errors.value.harvest_amount = 'La quantité récoltée est requise';
+  if (!growLogForm.value.harvestAmount) {
+    errors.value.harvestAmount = 'La quantité récoltée est requise';
     valid = false;
   }
-  if (!growLogForm.value.review_rating) {
-    errors.value.review_rating = 'La note est requise';
+  if (!growLogForm.value.reviewRating) {
+    errors.value.reviewRating = 'La note est requise';
     valid = false;
   }
   return valid;
@@ -224,14 +279,16 @@ async function submitGrowLog() {
   if (!props.strain) return;
   if (!validateGrowLogForm()) return;
   const formData = new FormData();
-  formData.append('strain_id', String((props.strain as any).id || props.strain.id));
+  formData.append('strainId', String(props.strain.id));
   formData.append('name', growLogForm.value.name);
-  formData.append('start_date', growLogForm.value.start_date || '');
-  formData.append('end_date', growLogForm.value.end_date || '');
-  formData.append('harvest_amount', growLogForm.value.harvest_amount || '');
-  formData.append('review_rating', growLogForm.value.review_rating || '');
+  formData.append('startDate', growLogForm.value.startDate || '');
+  formData.append('endDate', growLogForm.value.endDate || '');
+  formData.append('harvestAmount', growLogForm.value.harvestAmount || '');
+  formData.append('reviewRating', growLogForm.value.reviewRating || '');
+  formData.append('notes', growLogForm.value.notes || '');
+  formData.append('growlogUrl', growLogForm.value.growlogUrl || '');
   if (growLogForm.value.pdf) {
-    formData.append('pdf_path', growLogForm.value.pdf, growLogForm.value.pdf.name);
+    formData.append('pdfPath', growLogForm.value.pdf, growLogForm.value.pdf.name);
   }
   try {
     await api.post('/grow_logs', formData, {
@@ -255,93 +312,81 @@ onMounted(() => {
   console.log('Component mounted');
   if (props.strain) {
     console.log('Strain object:', JSON.stringify(props.strain));
-    console.log('Image path:', props.strain.image_path);
+    console.log('Image path:', props.strain.imagePath);
   } else {
     console.log('Strain is null');
   }
 });
 
-function formatDate(val: any): string {
-  if (!val) return 'N/A';
-  const date = new Date(val);
-  if (isNaN(date.getTime())) return 'N/A';
-  return date.toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: '2-digit'
-  });
+function formatDate(date: string | null): string {
+  if (!date) return 'N/A';
+  return new Date(date).toLocaleDateString('fr-FR');
 }
 
-function formatNumber(val: any): string {
-  if (val === null || val === undefined || val === '') return 'N/A';
-  const num = Number(val);
-  if (isNaN(num)) return 'N/A';
-  return num.toString();
+function formatWeeks(value: number | string | null): string {
+  if (value === null || value === '') return 'N/A';
+  const numValue = Number(value);
+  if (isNaN(numValue)) return 'N/A';
+  return `${numValue} semaines`;
 }
 
-function handlePdfClick(log: any) {
-  const url = getPdfUrl(log);
-  console.log('PDF Click - Log object:', log);
-  console.log('PDF Click - Generated URL:', url);
-  
-  if (!url) {
-    console.error('PDF Click - No URL available');
-    return;
-  }
-  
-  // Vérifier si l'URL est accessible
-  fetch(url)
-    .then(response => {
-      console.log('PDF Click - Response status:', response.status);
-      console.log('PDF Click - Response headers:', response.headers);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.blob();
-    })
-    .then(blob => {
-      console.log('PDF Click - Blob type:', blob.type);
-      console.log('PDF Click - Blob size:', blob.size);
-    })
-    .catch(error => {
-      console.error('PDF Click - Error:', error);
-    });
+function formatPercentage(value: number | string | null): string {
+  if (value === null || value === '') return 'N/A';
+  const numValue = Number(value);
+  if (isNaN(numValue)) return 'N/A';
+  return `${numValue.toFixed(2)}%`;
 }
 
-function getPdfUrl(log: any): string | undefined {
-  console.log('getPdfUrl - Input log:', JSON.stringify(log, null, 2));
-  const pdf = log.pdf_path || log.pdfPath;
-  console.log('getPdfUrl - PDF path:', pdf);
-  
-  if (!pdf) {
-    console.log('getPdfUrl - No PDF path found');
-    return undefined;
+function formatGrams(value: number | string | null): string {
+  if (value === null || value === '') return 'N/A';
+  const numValue = Number(value);
+  if (isNaN(numValue)) return 'N/A';
+  return `${numValue.toFixed(2)}g`;
+}
+
+function formatRating(value: number | string | null): string {
+  if (value === null || value === '') return 'N/A';
+  const numValue = Number(value);
+  if (isNaN(numValue)) return 'N/A';
+  return `${numValue}/5`;
+}
+
+function getRatingStars(rating: number | string | null): number {
+  if (rating === null || rating === undefined || rating === '') return 0;
+  const numRating = Number(rating);
+  if (isNaN(numRating)) return 0;
+  return Math.round(numRating);
+}
+
+function openGrowLogDetails(log: GrowLog) {
+  selectedGrowLog.value = log;
+  showGrowLogDetails.value = true;
+}
+
+function closeGrowLogDetails() {
+  showGrowLogDetails.value = false;
+  selectedGrowLog.value = null;
+}
+
+function downloadPdf(log: GrowLog) {
+  if (log.pdfPath) {
+    window.open(`${API_BASE}${log.pdfPath}`, '_blank');
   }
-  
-  // Si le chemin est déjà une URL complète, le retourner tel quel
-  if (pdf.startsWith('http')) {
-    console.log('getPdfUrl - Full URL detected:', pdf);
-    return pdf;
+}
+
+function openGrowLogUrl(log: GrowLog) {
+  if (log.growlogUrl) {
+    window.open(log.growlogUrl, '_blank');
   }
-  
-  const filename = pdf.split('/').pop();
-  const url = `${API_BASE}/api/uploads/growlogs-${filename}`;
-  console.log('getPdfUrl - Constructed URL:', url);
-  return url;
 }
 
 function getImageUrl(strain: Strain | null) {
   if (!strain) {
     return '/placeholder.jpg';
   }
-  const path = (strain as any).imagePath || strain.image_path;
+  const path = strain.imagePath;
   if (path) {
     const filename = path.split('/').pop();
-    return `${API_BASE}/api/uploads/strains-${filename}`;
-  }
-  const thumb = (strain as any).thumbnailPath || strain.thumbnail_path;
-  if (thumb) {
-    const filename = thumb.split('/').pop();
     return `${API_BASE}/api/uploads/strains-${filename}`;
   }
   return '/placeholder.jpg';
@@ -418,7 +463,7 @@ function getImageUrl(strain: Strain | null) {
 }
 
 .info-box::before {
-  content: "GENERAL INFO";
+  content: "INFORMATIONS GÉNÉRALES";
   display: block;
   background-color: #81c784;
   margin: -15px -15px 10px -15px;
@@ -458,7 +503,7 @@ function getImageUrl(strain: Strain | null) {
 }
 
 .strain-description::before {
-  content: "STRAIN DATA";
+  content: "DESCRIPTION";
   display: block;
   background-color: #81c784;
   margin: -15px -15px 10px -15px;
@@ -479,10 +524,13 @@ function getImageUrl(strain: Strain | null) {
   border: 4px solid #333;
   box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.2);
   position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .info-table::before {
-  content: "GROWTH RECORDS";
+  content: "JOURNAUX DE CULTURE";
   display: block;
   background-color: #81c784;
   margin: -15px -15px 10px -15px;
@@ -508,6 +556,34 @@ function getImageUrl(strain: Strain | null) {
   z-index: 2;
 }
 
+.table-container {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  border: 2px solid #333;
+  border-radius: 4px;
+  background-color: #c8e6c9;
+}
+
+.table-container::-webkit-scrollbar {
+  width: 12px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #81c784;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #388e3c;
+  border-radius: 4px;
+  border: 2px solid #333;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #2e7d32;
+}
+
 table {
   width: 100%;
   border-collapse: separate;
@@ -515,6 +591,8 @@ table {
   font-size: 14px;
   font-family: 'Courier New', monospace;
   color: #333;
+  flex: 1;
+  overflow-y: auto;
 }
 
 th, td {
@@ -561,7 +639,9 @@ tr:hover td {
 .add-growlog-btn-container {
   display: flex;
   justify-content: flex-end;
-  margin-top: 10px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 2px solid #333;
 }
 .button.add-growlog {
   background-color: #dcedc8;
@@ -702,32 +782,74 @@ input, select, textarea {
   margin-top: 10px;
   text-align: right;
 }
-.pdf-link {
-  text-decoration: underline;
-  color: #388e3c;
+.growlog-name {
   cursor: pointer;
-  display: inline-block;
-  padding: 2px 4px;
-  border-radius: 4px;
-  transition: all 0.2s;
+  color: #388e3c;
+  text-decoration: underline;
 }
-
-.pdf-link:hover {
-  background-color: #c8e6c9;
+.growlog-name:hover {
   color: #1b5e20;
 }
-
-.no-pdf {
-  color: #666;
-  font-style: italic;
+.growlog-details {
+  padding: 20px;
 }
-
-.pdf-missing {
-  font-size: 0.8em;
-  color: #f44336;
-  margin-left: 8px;
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
 }
-
+.detail-row h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+.rating-display {
+  display: flex;
+  gap: 2px;
+}
+.rating-display span {
+  color: #ccc;
+  font-size: 20px;
+}
+.rating-display span.filled {
+  color: #DAA520;
+}
+.detail-info {
+  background-color: #e8f5e9;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  border: 2px solid #333;
+}
+.detail-info p {
+  margin: 8px 0;
+  color: #333;
+}
+.detail-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+.detail-actions .button {
+  flex: 1;
+}
+.detail-actions .button.cancel {
+  background-color: #ffcdd2;
+}
+.detail-actions .button.cancel:hover {
+  background-color: #ef9a9a;
+}
+textarea {
+  width: 100%;
+  padding: 8px;
+  border: 2px solid #333;
+  background-color: #e8f5e9;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  border-radius: 4px;
+  resize: vertical;
+}
 .label-tooltip {
   border-bottom: 1px dotted #333;
   cursor: help;
@@ -748,5 +870,87 @@ input, select, textarea {
   min-width: 180px;
   max-width: 260px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.rating-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rating-stars {
+  display: flex;
+  gap: 4px;
+  font-size: 32px;
+  line-height: 1;
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  image-rendering: pixelated;
+  transform: scale(0.8);
+  transform-origin: left center;
+}
+.rating-stars span {
+  color: #808080;
+  text-shadow: 
+    2px 0 0 #000,
+    -2px 0 0 #000,
+    0 2px 0 #000,
+    0 -2px 0 #000,
+    2px 2px 0 #000,
+    -2px -2px 0 #000,
+    2px -2px 0 #000,
+    -2px 2px 0 #000;
+  transition: all 0.3s ease;
+  position: relative;
+  display: inline-block;
+}
+.rating-stars span.filled {
+  color: #DAA520;
+  text-shadow: 
+    2px 0 0 #8B4513,
+    -2px 0 0 #8B4513,
+    0 2px 0 #8B4513,
+    0 -2px 0 #8B4513,
+    2px 2px 0 #8B4513,
+    -2px -2px 0 #8B4513,
+    2px -2px 0 #8B4513,
+    -2px 2px 0 #8B4513;
+  animation: star-pulse 2s infinite;
+}
+@keyframes star-pulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.05);
+    filter: brightness(1.1);
+  }
+}
+.info-table .rating-stars {
+  font-size: 24px;
+  justify-content: center;
+  transform: scale(0.7);
+}
+.growlog-details .rating-stars {
+  font-size: 40px;
+  transform: scale(0.9);
+}
+.info-box .rating-stars {
+  font-size: 32px;
+  transform: scale(0.8);
+}
+.rating-stars span::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+  pointer-events: none;
 }
 </style>

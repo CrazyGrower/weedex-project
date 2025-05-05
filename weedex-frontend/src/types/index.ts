@@ -1,29 +1,29 @@
 export interface Strain {
     id: number;
-    number: string;
     name: string;
     brand: string;
-    image_path: string | null;
-    thumbnail_path: string | null;
     description: string | null;
-    seed_to_harvest: number | null;
-    type: string | null;
-    thc_percentage: number | null;
-    average_yield: number | null;
-    created_at: string;
-    updated_at: string;
+    seedToHarvest: number;
+    type: string;
+    thcPercentage: number;
+    averageYield: number;
+    strainReview: number;
+    imagePath: string | null;
+    createdAt: string;
+    updatedAt: string;
   }
   
   export interface GrowLog {
     id: number;
-    strain_id: number;
+    strainId: number;
     name: string;
-    start_date: string;
-    end_date: string | null;
-    harvest_amount: number | null;
-    review_rating: number | null;
+    startDate: string;
+    endDate: string;
+    harvestAmount: number;
+    reviewRating: number;
     notes: string | null;
-    pdf_path: string | null;
-    created_at: string;
-    updated_at: string;
+    pdfPath: string | null;
+    growlogUrl: string | null;
+    createdAt: string;
+    updatedAt: string;
   }

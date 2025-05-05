@@ -31,6 +31,9 @@ export default class GrowLog extends BaseModel {
   @column()
   declare pdf_path: string | null
 
+  @column()
+  declare growlog_url: string | null
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 

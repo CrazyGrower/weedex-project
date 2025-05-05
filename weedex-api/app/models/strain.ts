@@ -8,9 +8,6 @@ export default class Strain extends BaseModel {
   declare id: number
 
   @column()
-  declare number: string
-
-  @column()
   declare name: string
 
   @column()
@@ -18,9 +15,6 @@ export default class Strain extends BaseModel {
 
   @column()
   declare image_path: string | null
-
-  @column()
-  declare thumbnail_path: string | null
 
   @column()
   declare description: string
@@ -37,6 +31,9 @@ export default class Strain extends BaseModel {
   @column()
   declare average_yield: number
 
+  @column()
+  declare strain_review: number | null
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
@@ -44,7 +41,7 @@ export default class Strain extends BaseModel {
   declare updatedAt: DateTime
 
   @hasMany(() => GrowLog, {
-    foreignKey: 'strain_id'  // Spécifier explicitement le nom de la clé étrangère
+    foreignKey: 'strain_id'
   })
   declare growLogs: HasMany<typeof GrowLog>
 }

@@ -48,30 +48,43 @@ export default class GrowLogsController {
    */
   async store({ request, response }: HttpContext) {
     const data = request.only([
-      'strain_id',
+      'strainId',
       'name',
-      'start_date',
-      'end_date',
-      'harvest_amount',
-      'review_rating',
-      'notes'
+      'startDate',
+      'endDate',
+      'harvestAmount',
+      'reviewRating',
+      'notes',
+      'growlogUrl'
     ])
+
+    // Convertir les noms de champs de camelCase vers snake_case
+    const convertedData = {
+      strain_id: data.strainId,
+      name: data.name,
+      start_date: data.startDate,
+      end_date: data.endDate,
+      harvest_amount: data.harvestAmount,
+      review_rating: data.reviewRating,
+      notes: data.notes,
+      growlog_url: data.growlogUrl
+    }
 
     try {
       // Vérifier si la variété existe
-      await Strain.findOrFail(data.strain_id)
+      await Strain.findOrFail(convertedData.strain_id)
       
       // Gérer le fichier PDF
-      const pdfFile = request.file('pdf_path')
+      const pdfFile = request.file('pdfPath')
       if (pdfFile) {
         const fileName = `${Date.now()}_${pdfFile.clientName}`
         await pdfFile.move(join(__dirname, '..', '..', 'public', 'uploads', 'grow_logs'), {
           name: fileName
         })
-        data.pdf_path = `/uploads/grow_logs/${fileName}`
+        convertedData.pdf_path = `/uploads/grow_logs/${fileName}`
       }
       
-      const growLog = await GrowLog.create(data)
+      const growLog = await GrowLog.create(convertedData)
       return response.status(201).json({ grow_log: growLog })
     } catch (error) {
       console.error('Error creating grow log:', error)
