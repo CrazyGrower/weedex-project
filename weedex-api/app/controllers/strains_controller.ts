@@ -16,7 +16,7 @@ interface StrainData {
   type: string
   thc_percentage: number
   average_yield: number
-  strain_review: number
+  strain_review: number | null
   image_path?: string
   thumbnail_path?: string
 }
@@ -75,7 +75,7 @@ export default class StrainsController {
         seed_to_harvest: Number(data.seedToHarvest),
         thc_percentage: Number(data.thcPercentage),
         average_yield: Number(data.averageYield),
-        strain_review: Number(data.strainReview)
+        strain_review: data.strainReview ? Number(data.strainReview) : null
       };
 
       console.log('Données traitées:', processedData);
@@ -152,7 +152,7 @@ export default class StrainsController {
         seed_to_harvest: Number(data.seedToHarvest),
         thc_percentage: Number(data.thcPercentage),
         average_yield: Number(data.averageYield),
-        strain_review: Number(data.strainReview)
+        strain_review: data.strainReview ? Number(data.strainReview) : null
       };
 
       // Gérer l'upload de la nouvelle image si fournie

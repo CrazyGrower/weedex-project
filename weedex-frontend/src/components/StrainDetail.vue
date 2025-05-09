@@ -8,7 +8,10 @@
       </div>
     </div>
     <div class="strain-description">
-      {{ strain.description || 'Aucune description disponible.' }}
+      <div class="strain-description-header">DESCRIPTION</div>
+      <div class="strain-description-content">
+        {{ strain.description || 'Aucune description disponible.' }}
+      </div>
     </div>
     <div class="info-box">
       <ul>
@@ -58,6 +61,119 @@
       </div>
       <div class="add-growlog-btn-container">
         <button class="button add-growlog" @click="showAddGrowLog = true">Ajouter un Grow Log</button>
+        <button class="button edit-strain" @click="showEditStrain = true">Modifier la variété</button>
+      </div>
+    </div>
+
+    <!-- Modal de modification de la variété -->
+    <div v-if="showEditStrain" class="modal-backdrop">
+      <div class="modal-content">
+        <h2>Modifier la variété</h2>
+        <form @submit.prevent="submitEditStrain">
+          <div class="form-group">
+            <label for="edit-name">Nom *</label>
+            <input id="edit-name" v-model="editStrainForm.name" :class="{ error: editErrors.name }" required />
+            <span v-if="editErrors.name" class="error-message">{{ editErrors.name }}</span>
+          </div>
+          
+          <div class="form-group">
+            <label for="edit-brand">Marque *</label>
+            <input id="edit-brand" v-model="editStrainForm.brand" :class="{ error: editErrors.brand }" required />
+            <span v-if="editErrors.brand" class="error-message">{{ editErrors.brand }}</span>
+          </div>
+          
+          <div class="form-group">
+            <label for="edit-description">Description *</label>
+            <textarea id="edit-description" v-model="editStrainForm.description" :class="{ error: editErrors.description }" rows="4" required></textarea>
+            <span v-if="editErrors.description" class="error-message">{{ editErrors.description }}</span>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group half">
+              <label for="edit-seedToHarvest">Durée de culture *</label>
+              <input id="edit-seedToHarvest" type="number" v-model="editStrainForm.seedToHarvest" :class="{ error: editErrors.seedToHarvest }" min="0" step="1" required />
+              <span v-if="editErrors.seedToHarvest" class="error-message">{{ editErrors.seedToHarvest }}</span>
+            </div>
+            
+            <div class="form-group half">
+              <label for="edit-type">Type *</label>
+              <select id="edit-type" v-model="editStrainForm.type" :class="{ error: editErrors.type }" required>
+                <option value="">Sélectionner...</option>
+                <option value="Sativa">Sativa</option>
+                <option value="Indica">Indica</option>
+                <option value="Hybrid">Hybride</option>
+              </select>
+              <span v-if="editErrors.type" class="error-message">{{ editErrors.type }}</span>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group half">
+              <label for="edit-thcPercentage">Taux de THC (%) *</label>
+              <input id="edit-thcPercentage" type="number" v-model="editStrainForm.thcPercentage" :class="{ error: editErrors.thcPercentage }" step="0.01" min="0" max="100" required />
+              <span v-if="editErrors.thcPercentage" class="error-message">{{ editErrors.thcPercentage }}</span>
+            </div>
+            
+            <div class="form-group half">
+              <label for="edit-averageYield">Rendement moyen (g) *</label>
+              <input id="edit-averageYield" type="number" v-model="editStrainForm.averageYield" :class="{ error: editErrors.averageYield }" step="0.01" min="0" required />
+              <span v-if="editErrors.averageYield" class="error-message">{{ editErrors.averageYield }}</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-strainReview">Note de la variété (sur 5) *</label>
+            <div class="rating-input">
+              <input id="edit-strainReview" type="number" v-model="editStrainForm.strainReview" :class="{ error: editErrors.strainReview }" min="0" max="5" step="0.1" required />
+              <div class="rating-stars">
+                <span v-for="star in 5" :key="star" 
+                      @click="editStrainForm.strainReview = star"
+                      :class="{ 'active': star <= (editStrainForm.strainReview || 0) }">
+                  ★
+                </span>
+              </div>
+            </div>
+            <span v-if="editErrors.strainReview" class="error-message">{{ editErrors.strainReview }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-image">Photo</label>
+            <div class="image-upload">
+              <input
+                type="file"
+                id="edit-image"
+                accept="image/*"
+                @change="handleEditImageUpload"
+                ref="editFileInput"
+              >
+            </div>
+            <div v-if="editPreviewImage" class="image-preview">
+              <img :src="editPreviewImage" alt="Preview" style="max-width: 200px; display: block; margin-bottom: 8px;">
+              <button type="button" class="remove-image" @click.stop="removeEditImage">×</button>
+            </div>
+            <span v-if="editErrors.image" class="error-message">{{ editErrors.image }}</span>
+          </div>
+
+          <div class="form-row buttons">
+            <button type="button" class="button cancel" @click="closeEditStrainModal">Annuler</button>
+            <button type="submit" class="button submit" :disabled="isSubmitting">
+              {{ isSubmitting ? 'Envoi en cours...' : 'Enregistrer' }}
+            </button>
+            <button type="button" class="button delete" @click="confirmDeleteStrain">Supprimer la variété</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal de confirmation de suppression -->
+    <div v-if="showDeleteConfirm" class="modal-backdrop">
+      <div class="modal-content">
+        <h2>Confirmer la suppression</h2>
+        <p>Êtes-vous sûr de vouloir supprimer cette variété ? Cette action est irréversible.</p>
+        <div class="form-row buttons">
+          <button type="button" class="button cancel" @click="showDeleteConfirm = false">Annuler</button>
+          <button type="button" class="button delete" @click="deleteStrain">Confirmer la suppression</button>
+        </div>
       </div>
     </div>
 
@@ -164,7 +280,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits, onMounted, ref } from 'vue';
+import { defineProps, defineEmits, onMounted, ref, watch } from 'vue';
 import type { Strain, GrowLog } from '@/types';
 import api from '@/services/api';
 
@@ -175,12 +291,20 @@ const props = defineProps<{
   growLogs: GrowLog[];
 }>();
 
-defineEmits(['viewGrowLog']);
+const emit = defineEmits<{
+  (e: 'viewGrowLog', id: number): void;
+  (e: 'strainDeleted', id: number): void;
+}>();
 
 const showAddGrowLog = ref(false);
 const growLogSuccess = ref(false);
 const showGrowLogDetails = ref(false);
 const selectedGrowLog = ref<GrowLog | null>(null);
+const showEditStrain = ref(false);
+const showDeleteConfirm = ref(false);
+const isSubmitting = ref(false);
+const editFileInput = ref<HTMLInputElement | null>(null);
+const editPreviewImage = ref<string>('/placeholder.jpg');
 
 const growLogForm = ref({
   name: '',
@@ -201,6 +325,30 @@ const errors = ref({
   endDate: '',
   harvestAmount: '',
   reviewRating: '',
+});
+
+const editStrainForm = ref({
+  name: '',
+  brand: '',
+  description: '',
+  seedToHarvest: null as number | null,
+  type: '',
+  thcPercentage: null as number | null,
+  averageYield: null as number | null,
+  strainReview: null as number | null,
+  image: null as File | null,
+});
+
+const editErrors = ref({
+  name: '',
+  brand: '',
+  description: '',
+  seedToHarvest: '',
+  type: '',
+  thcPercentage: '',
+  averageYield: '',
+  strainReview: '',
+  image: '',
 });
 
 function handlePdfUpload(event: Event) {
@@ -308,6 +456,179 @@ async function submitGrowLog() {
   }
 }
 
+function handleEditImageUpload(event: Event) {
+  const input = event.target as HTMLInputElement;
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    if (!file.type.startsWith('image/')) {
+      editErrors.value.image = 'Le fichier doit être une image';
+      return;
+    }
+    editStrainForm.value.image = file;
+    editPreviewImage.value = URL.createObjectURL(file);
+    editErrors.value.image = '';
+  }
+}
+
+function removeEditImage() {
+  editStrainForm.value.image = null;
+  editPreviewImage.value = '/placeholder.jpg';
+}
+
+function closeEditStrainModal() {
+  showEditStrain.value = false;
+  editStrainForm.value = {
+    name: '',
+    brand: '',
+    description: '',
+    seedToHarvest: null,
+    type: '',
+    thcPercentage: null,
+    averageYield: null,
+    strainReview: null,
+    image: null,
+  };
+  editPreviewImage.value = '/placeholder.jpg';
+  editErrors.value = {
+    name: '',
+    brand: '',
+    description: '',
+    seedToHarvest: '',
+    type: '',
+    thcPercentage: '',
+    averageYield: '',
+    strainReview: '',
+    image: '',
+  };
+}
+
+function validateEditStrainForm() {
+  let valid = true;
+  editErrors.value = {
+    name: '',
+    brand: '',
+    description: '',
+    seedToHarvest: '',
+    type: '',
+    thcPercentage: '',
+    averageYield: '',
+    strainReview: '',
+    image: '',
+  };
+
+  if (!editStrainForm.value.name) {
+    editErrors.value.name = 'Le nom est requis';
+    valid = false;
+  }
+  if (!editStrainForm.value.brand) {
+    editErrors.value.brand = 'La marque est requise';
+    valid = false;
+  }
+  if (!editStrainForm.value.description) {
+    editErrors.value.description = 'La description est requise';
+    valid = false;
+  }
+  if (!editStrainForm.value.seedToHarvest) {
+    editErrors.value.seedToHarvest = 'La durée de culture est requise';
+    valid = false;
+  }
+  if (!editStrainForm.value.type) {
+    editErrors.value.type = 'Le type est requis';
+    valid = false;
+  }
+  if (!editStrainForm.value.thcPercentage) {
+    editErrors.value.thcPercentage = 'Le pourcentage de THC est requis';
+    valid = false;
+  }
+  if (!editStrainForm.value.averageYield) {
+    editErrors.value.averageYield = 'Le rendement moyen est requis';
+    valid = false;
+  }
+  if (!editStrainForm.value.strainReview) {
+    editErrors.value.strainReview = 'La note de la variété est requise';
+    valid = false;
+  }
+
+  return valid;
+}
+
+async function submitEditStrain() {
+  if (!props.strain || !validateEditStrainForm()) return;
+  
+  isSubmitting.value = true;
+  const formData = new FormData();
+  
+  formData.append('name', editStrainForm.value.name);
+  formData.append('brand', editStrainForm.value.brand);
+  formData.append('description', editStrainForm.value.description);
+  formData.append('seedToHarvest', String(editStrainForm.value.seedToHarvest));
+  formData.append('type', editStrainForm.value.type);
+  formData.append('thcPercentage', String(editStrainForm.value.thcPercentage));
+  formData.append('averageYield', String(editStrainForm.value.averageYield));
+  formData.append('strainReview', String(editStrainForm.value.strainReview));
+  
+  if (editStrainForm.value.image) {
+    formData.append('image', editStrainForm.value.image);
+  }
+
+  try {
+    const response = await api.put(`/strains/${props.strain.id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Accept': 'application/json'
+      }
+    });
+    
+    // Mettre à jour les données locales
+    Object.assign(props.strain, response.data.strain);
+    closeEditStrainModal();
+  } catch (error) {
+    console.error('Erreur lors de la modification de la variété:', error);
+    alert('Erreur lors de la modification de la variété');
+  } finally {
+    isSubmitting.value = false;
+  }
+}
+
+function confirmDeleteStrain() {
+  showDeleteConfirm.value = true;
+}
+
+async function deleteStrain() {
+  if (!props.strain) return;
+  
+  try {
+    await api.delete(`/strains/${props.strain.id}`);
+    showDeleteConfirm.value = false;
+    closeEditStrainModal();
+    // Émettre un événement pour informer le composant parent
+    emit('strainDeleted', props.strain.id);
+  } catch (error) {
+    console.error('Erreur lors de la suppression de la variété:', error);
+    alert('Erreur lors de la suppression de la variété');
+  }
+}
+
+// Initialiser le formulaire d'édition avec les données de la variété
+watch(() => props.strain, (newStrain) => {
+  if (newStrain) {
+    editStrainForm.value = {
+      name: newStrain.name || '',
+      brand: newStrain.brand || '',
+      description: newStrain.description || '',
+      seedToHarvest: newStrain.seedToHarvest,
+      type: newStrain.type || '',
+      thcPercentage: newStrain.thcPercentage,
+      averageYield: newStrain.averageYield,
+      strainReview: (newStrain as any).strain_review || newStrain.strainReview,
+      image: null,
+    };
+    editPreviewImage.value = getImageUrl(newStrain);
+  } else {
+    editPreviewImage.value = '/placeholder.jpg';
+  }
+}, { immediate: true });
+
 onMounted(() => {
   console.log('Component mounted');
   if (props.strain) {
@@ -380,16 +701,25 @@ function openGrowLogUrl(log: GrowLog) {
   }
 }
 
-function getImageUrl(strain: Strain | null) {
+function getImageUrl(strain: Strain | null): string {
+  const defaultImage = '/placeholder.jpg' as const;
+  
   if (!strain) {
-    return '/placeholder.jpg';
+    return defaultImage;
   }
+  
   const path = strain.imagePath;
-  if (path) {
-    const filename = path.split('/').pop();
-    return `${API_BASE}/api/uploads/strains-${filename}`;
+  if (!path) {
+    return defaultImage;
   }
-  return '/placeholder.jpg';
+  
+  const filename = path.split('/').pop();
+  if (!filename) {
+    return defaultImage;
+  }
+  
+  const imageUrl = `${API_BASE}/api/uploads/strains-${filename}`;
+  return imageUrl || defaultImage;
 }
 </script>
 
@@ -403,6 +733,7 @@ function getImageUrl(strain: Strain | null) {
   background-color: #388e3c;
   position: relative;
   z-index: 1;
+  height: inherit;
 }
 
 .image-container {
@@ -489,7 +820,7 @@ function getImageUrl(strain: Strain | null) {
 .strain-description {
   background-color: #a5d6a7;
   border-radius: 10px;
-  padding: 15px;
+  padding: 0 15px 15px 15px;
   grid-column: 2;
   grid-row: 1;
   color: #333;
@@ -500,19 +831,49 @@ function getImageUrl(strain: Strain | null) {
   font-size: 14px;
   line-height: 1.5;
   position: relative;
+  overflow: hidden;
 }
 
-.strain-description::before {
-  content: "DESCRIPTION";
-  display: block;
+.strain-description-header {
   background-color: #81c784;
-  margin: -15px -15px 10px -15px;
-  padding: 8px 15px;
+  margin: -15px -15px 0 -15px;
+  padding: 15px 15px 8px 15px;
   font-weight: bold;
   border-bottom: 2px solid #333;
   color: #333;
   text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.3);
   letter-spacing: 1px;
+  position: relative;
+  z-index: 2;
+  font-size: 1.2em;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+}
+
+.strain-description-content {
+  max-height: 180px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-top: 8px;
+}
+
+.strain-description-content::-webkit-scrollbar {
+  width: 12px;
+}
+
+.strain-description-content::-webkit-scrollbar-track {
+  background: #81c784;
+  border-radius: 4px;
+}
+
+.strain-description-content::-webkit-scrollbar-thumb {
+  background: #388e3c;
+  border-radius: 4px;
+  border: 2px solid #333;
+}
+
+.strain-description-content::-webkit-scrollbar-thumb:hover {
+  background: #2e7d32;
 }
 
 .info-table {
@@ -540,6 +901,9 @@ function getImageUrl(strain: Strain | null) {
   color: #333;
   text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.3);
   letter-spacing: 1px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .strain-description::after,
@@ -563,6 +927,7 @@ function getImageUrl(strain: Strain | null) {
   border: 2px solid #333;
   border-radius: 4px;
   background-color: #c8e6c9;
+  position: relative;
 }
 
 .table-container::-webkit-scrollbar {
@@ -610,6 +975,9 @@ th {
   letter-spacing: 1px;
   color: #333;
   text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.3);
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 tr:nth-child(even) td {
@@ -639,10 +1007,12 @@ tr:hover td {
 .add-growlog-btn-container {
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
   margin-top: auto;
   padding-top: 10px;
   border-top: 2px solid #333;
 }
+
 .button.add-growlog {
   background-color: #dcedc8;
   border: none;
@@ -658,11 +1028,105 @@ tr:hover td {
   box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.5);
   transition: all 0.2s;
 }
+
 .button.add-growlog:hover {
   background-color: #c5e1a5;
   transform: translate(1px, 1px);
   box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
 }
+
+.button.edit-strain {
+  background-color: #dcedc8;
+  border: none;
+  padding: 10px 15px;
+  text-align: center;
+  font-size: 14px;
+  cursor: pointer;
+  color: #333;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  border: 3px solid #333;
+  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s;
+}
+
+.button.edit-strain:hover {
+  background-color: #c5e1a5;
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+}
+
+.button.delete {
+  background-color: #ffcdd2;
+  color: #c62828;
+}
+
+.button.delete:hover {
+  background-color: #ef9a9a;
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+}
+
+.rating-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rating-input input {
+  width: 80px;
+}
+
+.rating-input .rating-stars {
+  display: flex;
+  gap: 4px;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.rating-input .rating-stars span {
+  cursor: pointer;
+  color: #808080;
+  transition: color 0.2s;
+}
+
+.rating-input .rating-stars span.active {
+  color: #DAA520;
+}
+
+.image-upload {
+  margin-bottom: 10px;
+}
+
+.image-preview {
+  position: relative;
+  display: inline-block;
+}
+
+.remove-image {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.remove-image:hover {
+  background-color: #d32f2f;
+}
+
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -676,80 +1140,93 @@ tr:hover td {
   z-index: 1000;
   backdrop-filter: blur(5px);
 }
+
 .modal-content {
   background-color: #e8f5e9;
-  padding: 25px;
+  padding: 20px;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   max-width: 500px;
   width: 90%;
-  max-height: 90vh;
+  max-height: 80vh;
   overflow-y: auto;
   border: 3px solid #333;
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  margin-top: 60px;
 }
+
 .modal-content h2 {
   margin-top: 0;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   color: #333;
   font-family: 'Courier New', monospace;
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: bold;
   text-align: center;
   background-color: #81c784;
-  padding: 12px 0 10px 0;
+  padding: 10px 0;
   border-bottom: 2px solid #333;
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
   letter-spacing: 1px;
   text-shadow: 1px 1px 0px rgba(255,255,255,0.3);
 }
+
 .form-row {
   display: flex;
-  gap: 15px;
-  margin-bottom: 15px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
+
 .form-group {
   flex: 1;
   margin-bottom: 0;
   display: flex;
   flex-direction: column;
 }
-.half {
-  width: 50%;
-}
+
 label {
   display: block;
   font-weight: bold;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
   color: #333;
+  font-size: 0.9rem;
 }
+
 input, select, textarea {
   width: 100%;
-  padding: 8px;
+  padding: 6px;
   border: 2px solid #333;
   background-color: #e8f5e9;
   font-family: 'Courier New', monospace;
-  font-size: 14px;
+  font-size: 0.9rem;
   border-radius: 4px;
 }
+
+textarea {
+  min-height: 80px;
+}
+
 .error {
   border-color: #f44336;
 }
+
 .error-message {
   color: #f44336;
   font-size: 12px;
   margin-top: 4px;
   display: block;
 }
+
 .form-row.buttons {
   display: flex;
   gap: 15px;
   margin-top: 20px;
   justify-content: flex-end;
 }
+
 .button {
   background-color: #dcedc8;
   padding: 10px 15px;
@@ -765,56 +1242,69 @@ input, select, textarea {
   transition: all 0.2s;
   min-width: 120px;
 }
+
 .button:hover {
   background-color: #c5e1a5;
   transform: translate(1px, 1px);
   box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
 }
+
 .button.cancel {
   background-color: #ffcdd2;
 }
+
 .button.submit {
   background-color: #c8e6c9;
 }
+
 .success-message {
   color: #388e3c;
   font-weight: bold;
   margin-top: 10px;
   text-align: right;
 }
+
 .growlog-name {
   cursor: pointer;
   color: #388e3c;
   text-decoration: underline;
 }
+
 .growlog-name:hover {
   color: #1b5e20;
 }
+
 .growlog-details {
   padding: 20px;
 }
+
 .detail-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
 }
+
 .detail-row h3 {
   margin: 0;
   color: #333;
   font-size: 1.5rem;
 }
+
 .rating-display {
   display: flex;
   gap: 2px;
 }
+
 .rating-display span {
   color: #ccc;
   font-size: 20px;
 }
+
 .rating-display span.filled {
   color: #DAA520;
 }
+
 .detail-info {
   background-color: #e8f5e9;
   padding: 15px;
@@ -822,24 +1312,30 @@ input, select, textarea {
   margin-bottom: 20px;
   border: 2px solid #333;
 }
+
 .detail-info p {
   margin: 8px 0;
   color: #333;
 }
+
 .detail-actions {
   display: flex;
   gap: 10px;
   margin-top: 20px;
 }
+
 .detail-actions .button {
   flex: 1;
 }
+
 .detail-actions .button.cancel {
   background-color: #ffcdd2;
 }
+
 .detail-actions .button.cancel:hover {
   background-color: #ef9a9a;
 }
+
 textarea {
   width: 100%;
   padding: 8px;
@@ -850,11 +1346,13 @@ textarea {
   border-radius: 4px;
   resize: vertical;
 }
+
 .label-tooltip {
   border-bottom: 1px dotted #333;
   cursor: help;
   position: relative;
 }
+
 .label-tooltip:hover::after {
   content: attr(data-tooltip);
   position: absolute;
@@ -871,11 +1369,13 @@ textarea {
   max-width: 260px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
+
 .rating-item {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+
 .rating-stars {
   display: flex;
   gap: 4px;
@@ -886,6 +1386,7 @@ textarea {
   transform: scale(0.8);
   transform-origin: left center;
 }
+
 .rating-stars span {
   color: #808080;
   text-shadow: 
@@ -901,6 +1402,7 @@ textarea {
   position: relative;
   display: inline-block;
 }
+
 .rating-stars span.filled {
   color: #DAA520;
   text-shadow: 
@@ -914,6 +1416,7 @@ textarea {
     -2px 2px 0 #8B4513;
   animation: star-pulse 2s infinite;
 }
+
 @keyframes star-pulse {
   0%, 100% {
     transform: scale(1);
@@ -924,19 +1427,23 @@ textarea {
     filter: brightness(1.1);
   }
 }
+
 .info-table .rating-stars {
   font-size: 24px;
   justify-content: center;
   transform: scale(0.7);
 }
+
 .growlog-details .rating-stars {
   font-size: 40px;
   transform: scale(0.9);
 }
+
 .info-box .rating-stars {
   font-size: 32px;
   transform: scale(0.8);
 }
+
 .rating-stars span::before {
   content: '';
   position: absolute;

@@ -5,6 +5,7 @@ import router from '@adonisjs/core/services/router'
 
 const StrainsController = () => import('#controllers/strains_controller')
 const GrowLogsController = () => import('#controllers/grow_logs_controller')
+const SavesController = () => import('#controllers/saves_controller')
 
 // Get the correct directory path
 const __filename = fileURLToPath(import.meta.url)
@@ -31,6 +32,10 @@ router.group(() => {
   router.put('/grow_logs/:id', [GrowLogsController, 'update'])
   router.delete('/grow_logs/:id', [GrowLogsController, 'destroy'])
   
+  // Routes pour les sauvegardes
+  router.post('/save', [SavesController, 'store'])
+  router.post('/load', [SavesController, 'load'])
+
   // Simplified file serving route
   router.get('/uploads/:file', async ({ params, response, request }) => {
     console.log('File upload request received:', {

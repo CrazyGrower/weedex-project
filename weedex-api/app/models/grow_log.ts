@@ -14,7 +14,7 @@ export default class GrowLog extends BaseModel {
   declare name: string
 
   @column.date()
-  declare start_date: DateTime
+  declare start_date: DateTime | null
 
   @column.date()
   declare end_date: DateTime | null

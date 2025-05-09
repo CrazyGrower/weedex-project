@@ -14,7 +14,7 @@ export default class extends BaseSchema {
       table.string('type').nullable()
       table.decimal('thc_percentage', 5, 2).nullable()
       table.decimal('average_yield', 8, 2).nullable()
-      table.integer('strain_review').unsigned().nullable()
+      table.decimal('strain_review', 3, 1).nullable()
 
       table.timestamp('created_at', { useTz: true })
       table.timestamp('updated_at', { useTz: true })

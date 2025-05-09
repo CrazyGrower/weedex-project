@@ -48,7 +48,8 @@
           id="seedToHarvest" 
           v-model="form.seedToHarvest" 
           :class="{ 'error': errors.seedToHarvest }"
-          min="1"
+          min="0"
+          step="1"
           required
         >
         <span v-if="errors.seedToHarvest" class="error-message">{{ errors.seedToHarvest }}</span>
@@ -74,9 +75,9 @@
           id="thcPercentage" 
           v-model="form.thcPercentage" 
           :class="{ 'error': errors.thcPercentage }"
-          step="0.1"
+          step="0.01"
           min="0"
-          max="35"
+          max="100"
           required
         >
         <span v-if="errors.thcPercentage" class="error-message">{{ errors.thcPercentage }}</span>
@@ -89,7 +90,7 @@
           id="averageYield" 
           v-model="form.averageYield" 
           :class="{ 'error': errors.averageYield }"
-          step="0.1"
+          step="0.01"
           min="0"
           required
         >
@@ -105,9 +106,9 @@
           id="strainReview" 
           v-model="form.strainReview" 
           :class="{ 'error': errors.strainReview }"
-          min="1"
+          min="0"
           max="5"
-          step="1"
+          step="0.1"
           required
         >
         <div class="rating-stars">

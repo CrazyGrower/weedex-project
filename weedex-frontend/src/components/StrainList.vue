@@ -4,7 +4,12 @@
       <div class="strain-item" 
            v-for="strain in strains" 
            :key="strain.id"
-           :class="{ active: selectedId === strain.id }"
+           :class="{ 
+             active: selectedId === strain.id,
+             'type-sativa': strain.type.toLowerCase() === 'sativa',
+             'type-indica': strain.type.toLowerCase() === 'indica',
+             'type-hybrid': strain.type.toLowerCase() === 'hybrid'
+           }"
            @click="$emit('selectStrain', strain.id)">
         <div class="retro-arrow" v-if="selectedId === strain.id"></div>
         <div class="strain-number">#{{ String(strain.id).padStart(3, '0') }}</div>
@@ -37,6 +42,22 @@
             <button @click="sortByType('hybrid')">Hybrid</button>
           </div>
         </div>
+      </div>
+    </div>
+    
+    <!-- Légende des types -->
+    <div class="type-legend">
+      <div class="legend-item">
+        <div class="legend-color type-sativa"></div>
+        <div class="legend-text">Sativa</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color type-indica"></div>
+        <div class="legend-text">Indica</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color type-hybrid"></div>
+        <div class="legend-text">Hybrid</div>
       </div>
     </div>
   </div>
@@ -72,7 +93,7 @@ function sortByRating(direction: 'asc' | 'desc') {
 }
 
 function sortByType(type: 'sativa' | 'indica' | 'hybrid') {
-  emit('sortStrains', { type: 'strainType', value: type });
+  emit('sortStrains', { type: 'type', value: type });
   showSortMenu.value = false;
 }
 
@@ -160,14 +181,38 @@ function getImageUrl(strain: Strain): string {
   border: 2px solid #333;
   height: 46px;
   border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.strain-item.type-sativa {
+  border: 2px solid #f44336;
+}
+
+.strain-item.type-indica {
+  border: 2px solid #3f51b5;
+}
+
+.strain-item.type-hybrid {
+  border: 2px solid #9c27b0;
 }
 
 .strain-item.active {
   background-color: #dcedc8;
   box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
-  border: 2px solid #333;
   padding-left: 20px;
   margin-left: 10px;
+}
+
+.strain-item.active.type-sativa {
+  border: 2px solid #f44336;
+}
+
+.strain-item.active.type-indica {
+  border: 2px solid #3f51b5;
+}
+
+.strain-item.active.type-hybrid {
+  border: 2px solid #9c27b0;
 }
 
 .retro-arrow {
@@ -210,11 +255,34 @@ function getImageUrl(strain: Strain): string {
 
 .strain-type {
   font-size: 12px;
-  color: #666;
+  color: #333;
   margin-left: auto;
-  background-color: #c5e1a5;
-  padding: 2px 5px;
+  padding: 2px 8px;
   border: 1px solid #333;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.strain-item.type-sativa .strain-type {
+  background: #ffebee;
+  border-color: #f44336;
+  color: #d32f2f;
+}
+
+.strain-item.type-indica .strain-type {
+  background: #e8eaf6;
+  border-color: #3f51b5;
+  color: #283593;
+}
+
+.strain-item.type-hybrid .strain-type {
+  background: #f3e5f5;
+  border-color: #9c27b0;
+  color: #6a1b9a;
 }
 
 .buttons-container {
@@ -317,5 +385,45 @@ function getImageUrl(strain: Strain): string {
   background-color: #a5d6a7;
   transform: translate(1px, 1px);
   box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+}
+
+/* Légende des types */
+.type-legend {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 2px solid #333;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin: 0 10px;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  margin-right: 5px;
+  border-radius: 3px;
+  border: 2px solid;
+}
+
+.legend-color.type-sativa {
+  border-color: #f44336;
+}
+
+.legend-color.type-indica {
+  border-color: #3f51b5;
+}
+
+.legend-color.type-hybrid {
+  border-color: #9c27b0;
+}
+
+.legend-text {
+  font-size: 12px;
+  font-weight: bold;
 }
 </style>

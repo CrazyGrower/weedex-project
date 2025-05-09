@@ -1,18 +1,22 @@
 import { defineConfig } from '@adonisjs/core/bodyparser'
 
-const bodyParserConfig = defineConfig({
+export default defineConfig({
   /**
    * The bodyparser middleware will parse the request body
    * for the following HTTP methods.
    */
   allowedMethods: ['POST', 'PUT', 'PATCH', 'DELETE'],
 
+  allowedFormats: ['json', 'multipart-form'],
+
   /**
    * Config for the "application/x-www-form-urlencoded"
    * content-type parser
    */
   form: {
-    convertEmptyStringsToNull: true,
+    encoding: 'utf-8',
+    limit: '1mb',
+    queryString: {},
     types: ['application/x-www-form-urlencoded'],
   },
 
@@ -20,7 +24,9 @@ const bodyParserConfig = defineConfig({
    * Config for the JSON parser
    */
   json: {
-    convertEmptyStringsToNull: true,
+    encoding: 'utf-8',
+    limit: '10mb',
+    strict: true,
     types: [
       'application/json',
       'application/json-patch+json',
@@ -40,16 +46,22 @@ const bodyParserConfig = defineConfig({
      * operating system
      */
     autoProcess: true,
-    convertEmptyStringsToNull: true,
     processManually: [],
-
-    /**
-     * Maximum limit of data to parse including all files
-     * and fields
-     */
-    limit: '20mb',
+    encoding: 'utf-8',
+    convertEmptyStringsToNull: true,
+    maxFields: 10,
+    limit: '50mb',
     types: ['multipart/form-data'],
+    tmpFileName: () => `tmp-${Date.now()}-${Math.random().toString(36).substring(2)}`
+  },
+
+  /**
+   * Config for the raw parser
+   */
+  raw: {
+    encoding: 'utf-8',
+    limit: '1mb',
+    queryString: {},
+    types: ['text/*'],
   },
 })
-
-export default bodyParserConfig

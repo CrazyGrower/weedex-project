@@ -7,7 +7,7 @@ export interface Strain {
     type: string;
     thcPercentage: number;
     averageYield: number;
-    strainReview: number;
+    strainReview: number | null;
     imagePath: string | null;
     createdAt: string;
     updatedAt: string;
@@ -20,7 +20,7 @@ export interface Strain {
     startDate: string;
     endDate: string;
     harvestAmount: number;
-    reviewRating: number;
+    reviewRating: number | null;
     notes: string | null;
     pdfPath: string | null;
     growlogUrl: string | null;

@@ -11,11 +11,22 @@
           @addStrain="showAddStrainForm = true"
           @sortStrains="sortStrains"
         />
+        <div class="save-load-buttons">
+          <button class="button" @click="loadSave">Charger sauvegarde</button>
+          <input
+            type="file"
+            ref="fileInput"
+            accept=".zip"
+            style="display: none"
+            @change="handleFileUpload"
+          >
+        </div>
       </div>
       <StrainDetail 
         :strain="currentStrain" 
         :growLogs="growLogs"
         @viewGrowLog="viewGrowLog"
+        @strainDeleted="handleStrainDeleted"
       />
     </div>
     <div v-if="showAddStrainForm" class="modal-backdrop">
@@ -43,6 +54,7 @@ const currentStrain = ref<Strain | null>(null);
 const currentStrainId = ref<number | null>(null);
 const growLogs = ref<GrowLog[]>([]);
 const showAddStrainForm = ref(false);
+const fileInput = ref<HTMLInputElement | null>(null);
 
 const fetchStrains = async () => {
   try {
@@ -134,6 +146,82 @@ const addStrain = async (formData: FormData) => {
   } catch (error) {
     console.error('Error adding strain:', error);
   }
+};
+
+const loadSave = () => {
+  console.log('loadSave appelé');
+  if (fileInput.value) {
+    console.log('Clic sur fileInput');
+    fileInput.value.click();
+  } else {
+    console.error('fileInput non trouvé');
+  }
+};
+
+const handleFileUpload = async (event: Event) => {
+  console.log('%c handleFileUpload appelé', 'background: #222; color: #bada55; font-size: 20px;');
+  console.log('Event:', event);
+  
+  const input = event.target as HTMLInputElement;
+  if (!input.files?.length) {
+    console.log('Aucun fichier sélectionné');
+    return;
+  }
+
+  const file = input.files[0];
+  console.log('%c Fichier sélectionné:', 'background: #222; color: #bada55; font-size: 16px;', {
+    nom: file.name,
+    taille: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+    type: file.type,
+    dernièreModification: new Date(file.lastModified).toLocaleString()
+  });
+
+  const formData = new FormData();
+  formData.append('backup', file);
+  console.log('%c FormData créé:', 'background: #222; color: #bada55; font-size: 16px;', {
+    nomDuChamp: 'backup',
+    fichier: file.name
+  });
+
+  try {
+    console.log('%c Envoi de la requête...', 'background: #222; color: #bada55; font-size: 16px;');
+    const response = await api.post('/api/load', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    console.log('%c Réponse reçue:', 'background: #222; color: #bada55; font-size: 16px;', response.data);
+
+    if (response.data.strains) {
+      console.log('%c Nombre de strains reçues:', 'background: #222; color: #bada55; font-size: 16px;', response.data.strains.length);
+      strains.value = response.data.strains;
+      if (strains.value.length > 0) {
+        await selectStrain(strains.value[0].id);
+      }
+    }
+
+    // Réinitialiser l'input
+    input.value = '';
+  } catch (error: any) {
+    console.error('%c Erreur lors du chargement:', 'background: #222; color: #ff0000; font-size: 16px;', error);
+    if (error.response) {
+      console.error('%c Détails de l\'erreur:', 'background: #222; color: #ff0000; font-size: 16px;', {
+        status: error.response.status,
+        data: error.response.data
+      });
+    }
+    alert('Erreur lors du chargement de la sauvegarde');
+  }
+};
+
+const handleStrainDeleted = (strainId: number) => {
+  // Supprimer la variété de la liste
+  strains.value = strains.value.filter(s => s.id !== strainId);
+  // Réinitialiser la sélection
+  currentStrain.value = null;
+  currentStrainId.value = null;
+  growLogs.value = [];
 };
 
 // Navigation au clavier (flèches haut/bas)
@@ -253,5 +341,11 @@ onBeforeUnmount(() => {
   background-color: #c5e1a5;
   transform: translate(1px, 1px);
   box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+}
+.save-load-buttons {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
 }
 </style>

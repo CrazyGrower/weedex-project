@@ -1,12 +1,27 @@
 import { HttpContext } from '@adonisjs/core/http'
 import GrowLog from '#models/grow_log'
 import Strain from '#models/strain'
+import { DateTime } from 'luxon'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
+import { writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
+
+interface GrowLogData {
+  strain_id: number
+  name: string
+  start_date: DateTime
+  end_date: DateTime | null
+  harvest_amount: number
+  review_rating: number | null
+  notes: string | null
+  growlog_url: string | null
+  pdf_path?: string
+}
 
 export default class GrowLogsController {
   /**
@@ -47,32 +62,31 @@ export default class GrowLogsController {
    * Créer un nouveau log de culture
    */
   async store({ request, response }: HttpContext) {
-    const data = request.only([
-      'strainId',
-      'name',
-      'startDate',
-      'endDate',
-      'harvestAmount',
-      'reviewRating',
-      'notes',
-      'growlogUrl'
-    ])
-
-    // Convertir les noms de champs de camelCase vers snake_case
-    const convertedData = {
-      strain_id: data.strainId,
-      name: data.name,
-      start_date: data.startDate,
-      end_date: data.endDate,
-      harvest_amount: data.harvestAmount,
-      review_rating: data.reviewRating,
-      notes: data.notes,
-      growlog_url: data.growlogUrl
-    }
-
     try {
+      const data = request.only([
+        'strainId',
+        'name',
+        'startDate',
+        'endDate',
+        'harvestAmount',
+        'reviewRating',
+        'notes',
+        'growlogUrl'
+      ]) as any;
+
+      const processedData: GrowLogData = {
+        strain_id: Number(data.strainId),
+        name: data.name,
+        start_date: DateTime.fromISO(data.startDate),
+        end_date: data.endDate ? DateTime.fromISO(data.endDate) : null,
+        harvest_amount: Number(data.harvestAmount),
+        review_rating: data.reviewRating ? Number(data.reviewRating) : null,
+        notes: data.notes || null,
+        growlog_url: data.growlogUrl || null
+      };
+
       // Vérifier si la variété existe
-      await Strain.findOrFail(convertedData.strain_id)
+      await Strain.findOrFail(processedData.strain_id)
       
       // Gérer le fichier PDF
       const pdfFile = request.file('pdfPath')
@@ -81,10 +95,10 @@ export default class GrowLogsController {
         await pdfFile.move(join(__dirname, '..', '..', 'public', 'uploads', 'grow_logs'), {
           name: fileName
         })
-        convertedData.pdf_path = `/uploads/grow_logs/${fileName}`
+        processedData.pdf_path = `/uploads/grow_logs/${fileName}`
       }
       
-      const growLog = await GrowLog.create(convertedData)
+      const growLog = await GrowLog.create(processedData)
       return response.status(201).json({ grow_log: growLog })
     } catch (error) {
       console.error('Error creating grow log:', error)
@@ -100,17 +114,28 @@ export default class GrowLogsController {
       const growLog = await GrowLog.findOrFail(params.id)
       
       const data = request.only([
-        'strain_id',
+        'strainId',
         'name',
-        'start_date',
-        'end_date',
-        'harvest_amount',
-        'review_rating',
+        'startDate',
+        'endDate',
+        'harvestAmount',
+        'reviewRating',
         'notes',
-        'pdf_path'
-      ])
+        'growlogUrl'
+      ]) as any;
 
-      growLog.merge(data)
+      const processedData: GrowLogData = {
+        strain_id: Number(data.strainId),
+        name: data.name,
+        start_date: DateTime.fromISO(data.startDate),
+        end_date: data.endDate ? DateTime.fromISO(data.endDate) : null,
+        harvest_amount: Number(data.harvestAmount),
+        review_rating: data.reviewRating ? Number(data.reviewRating) : null,
+        notes: data.notes || null,
+        growlog_url: data.growlogUrl || null
+      };
+
+      growLog.merge(processedData)
       await growLog.save()
 
       return response.json({ grow_log: growLog })
